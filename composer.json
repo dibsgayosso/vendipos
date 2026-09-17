@@ -1,0 +1,17 @@
+{
+  "name": "vendi/pos",
+  "description": "Vendi POS",
+  "type": "project",
+  "require": {
+    "php": "^8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "Vendi\\": "src/"
+    }
+  },
+  "config": {
+    "sort-packages": true,
+    "optimize-autoloader": true
+  }
+}
