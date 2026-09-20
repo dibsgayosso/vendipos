@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Sales\RefundService;
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');try{$u=$_SESSION['user']??null;if(!$u)throw new RuntimeException('Sesión requerida');$d=json_decode(file_get_contents('php://input'),true,512,JSON_THROW_ON_ERROR);$db=Connection::make(['host'=>getenv('DB_HOST')?:'127.0.0.1','port'=>(int)(getenv('DB_PORT')?:3306),'database'=>getenv('DB_DATABASE')?:'vendi','username'=>getenv('DB_USERNAME')?:'root','password'=>getenv('DB_PASSWORD')?:'']);$id=(new RefundService($db))->refund((int)$u['business_id'],(int)$u['default_branch_id'],(int)$u['id'],(int)$d['sale_id'],$d['items']??[],(string)($d['reason']??''),$d['payments']??[]);echo json_encode(['ok'=>true,'refund_id'=>$id]);}catch(Throwable $e){http_response_code(422);echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}
