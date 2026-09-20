@@ -15,12 +15,14 @@ final class ReportCatalog{
  ['key'=>'products','name'=>'Productos','reports'=>[
   ['key'=>'products_overview','name'=>'Panorama de productos','kind'=>'summary'],
   ['key'=>'products_analysis','name'=>'Análisis de productos','kind'=>'summary'],
+  ['key'=>'category_profit','name'=>'Utilidad por categoría','kind'=>'summary'],
   ['key'=>'products_top','name'=>'Productos estrella','kind'=>'summary'],
   ['key'=>'products_slow','name'=>'Productos de baja rotación','kind'=>'summary'],
   ['key'=>'products_price_variance','name'=>'Variaciones de precio','kind'=>'detail'],
   ['key'=>'products_price_history','name'=>'Historial de precios','kind'=>'detail'],
   ['key'=>'products_serial_sales','name'=>'Series vendidas','kind'=>'detail'],
-  ['key'=>'products_serial_trace','name'=>'Trazabilidad por serie','kind'=>'detail']]],
+  ['key'=>'products_serial_trace','name'=>'Trazabilidad por serie','kind'=>'detail'],
+  ['key'=>'serials','name'=>'Control de números de serie','kind'=>'detail']]],
  ['key'=>'inventory','name'=>'Inventario','reports'=>[
   ['key'=>'inventory_status','name'=>'Estado de existencias','kind'=>'summary'],
   ['key'=>'inventory_movements','name'=>'Movimientos de inventario','kind'=>'detail'],
