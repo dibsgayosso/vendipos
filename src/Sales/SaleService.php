@@ -24,6 +24,8 @@ final class SaleService {
     $normalized[]=[$product,$qty,$line];
     $subtotal+=$line['gross'];$discount+=$line['discount'];$tax+=$line['tax'];$total+=$line['total'];$costTotal+=(float)$product['cost']*$qty;
    }
+   $payments=PaymentValidator::validate($payments,Money::round($total));
+   $cash=$this->db->prepare("SELECT id FROM cash_sessions WHERE business_id=? AND branch_id=? AND user_id=? AND status='open' ORDER BY id DESC LIMIT 1 FOR UPDATE");$cash->execute([$businessId,$branchId,$userId]);$cashSessionId=$cash->fetchColumn();if(!$cashSessionId)throw new RuntimeException('Debes abrir caja antes de cobrar.');
    $paid=array_sum(array_map(fn($p)=>(float)$p['amount'],$payments));
    if(Money::round($paid)<Money::round($total)) throw new RuntimeException('Pago insuficiente.');
    $s=$this->db->prepare("INSERT INTO sales(business_id,branch_id,user_id,customer_id,status,subtotal,discount,tax,total,cost_total,idempotency_key,completed_at) VALUES(?,?,?,?,'completed',?,?,?,?,?,?,NOW())");
@@ -33,11 +35,13 @@ final class SaleService {
     $si->execute([$saleId,$product['id'],$product['name'],$qty,$product['price'],$product['cost'],$line['discount'],$line['tax'],$line['total']]);
     $st=$this->db->prepare("UPDATE inventory SET qty=qty-? WHERE business_id=? AND branch_id=? AND product_id=?");
     $st->execute([$qty,$businessId,$branchId,$product['id']]);
+    $mv=$this->db->prepare("INSERT INTO stock_movements(business_id,branch_id,product_id,user_id,type,qty,unit_cost,reference_type,reference_id) VALUES(?,?,?,?,'sale',?,?,?,?)");$mv->execute([$businessId,$branchId,$product['id'],$userId,-$qty,$product['cost'],'sale',$saleId]);
    }
    foreach($payments as $pay){
     if((float)$pay['amount']<=0) continue;
-    $q=$this->db->prepare("INSERT INTO payments(sale_id,method,amount,reference) VALUES(?,?,?,?)");
-    $q->execute([$saleId,$pay['method'],Money::round((float)$pay['amount']),$pay['reference']??null]);
+    $q=$this->db->prepare("INSERT INTO payments(sale_id,cash_session_id,method,amount,reference) VALUES(?,?,?,?,?)");
+    $q->execute([$saleId,$cashSessionId,$pay['method'],Money::round((float)$pay['amount']),$pay['reference']??null]);
+    if($pay['method']==='cash'){$cm=$this->db->prepare("INSERT INTO cash_movements(business_id,branch_id,cash_session_id,user_id,type,amount,reference_type,reference_id) VALUES(?,?,?,?,'sale',?,'sale',?)");$cm->execute([$businessId,$branchId,$cashSessionId,$userId,Money::round((float)$pay['amount']),$saleId]);}
    }
    $this->db->commit(); return $saleId;
   } catch(\Throwable $e){$this->db->rollBack();throw $e;}
