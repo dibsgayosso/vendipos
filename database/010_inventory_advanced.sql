@@ -1,0 +1,17 @@
+CREATE TABLE product_presentations (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,business_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,name VARCHAR(100) NOT NULL,unit_code VARCHAR(30) NOT NULL,conversion_to_base DECIMAL(18,6) NOT NULL DEFAULT 1,barcode VARCHAR(100) NULL,sku VARCHAR(100) NULL,sale_price DECIMAL(15,2) NULL,purchase_cost DECIMAL(15,4) NULL,is_base TINYINT(1) NOT NULL DEFAULT 0,active TINYINT(1) NOT NULL DEFAULT 1,sort_order INT NOT NULL DEFAULT 0,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY uq_presentation_barcode(business_id,barcode),KEY idx_presentation_product(product_id,active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE products ADD COLUMN tracks_lots TINYINT(1) NOT NULL DEFAULT 0,ADD COLUMN tracks_expiration TINYINT(1) NOT NULL DEFAULT 0,ADD COLUMN tracks_serials TINYINT(1) NOT NULL DEFAULT 0,ADD COLUMN expiration_sale_policy ENUM('allow','warn','block') NOT NULL DEFAULT 'block';
+CREATE TABLE inventory_lots (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,business_id BIGINT UNSIGNED NOT NULL,branch_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,lot_number VARCHAR(100) NOT NULL,manufactured_at DATE NULL,expires_at DATE NULL,qty_base DECIMAL(18,6) NOT NULL DEFAULT 0,cost_per_base DECIMAL(15,4) NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY uq_lot(business_id,branch_id,product_id,lot_number),KEY idx_lot_fefo(business_id,branch_id,product_id,expires_at,qty_base)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE inventory_serials (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,business_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,branch_id BIGINT UNSIGNED NOT NULL,serial_number VARCHAR(190) NOT NULL,status ENUM('available','reserved','sold','transit','returned','damaged') NOT NULL DEFAULT 'available',lot_id BIGINT UNSIGNED NULL,purchase_id BIGINT UNSIGNED NULL,sale_id BIGINT UNSIGNED NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_serial(business_id,serial_number),KEY idx_serial_stock(business_id,branch_id,product_id,status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE stock_transfers (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,business_id BIGINT UNSIGNED NOT NULL,from_branch_id BIGINT UNSIGNED NOT NULL,to_branch_id BIGINT UNSIGNED NOT NULL,user_id BIGINT UNSIGNED NOT NULL,status ENUM('draft','sent','received','cancelled') NOT NULL DEFAULT 'draft',notes VARCHAR(255) NULL,sent_at DATETIME NULL,received_at DATETIME NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,KEY idx_transfer_business(business_id,status,created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE stock_transfer_items (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,transfer_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,presentation_id BIGINT UNSIGNED NULL,qty_presentation DECIMAL(18,6) NOT NULL,qty_base DECIMAL(18,6) NOT NULL,lot_id BIGINT UNSIGNED NULL,serial_id BIGINT UNSIGNED NULL,KEY idx_transfer_items(transfer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT INTO permissions(code,name,module) VALUES ('inventory.lots','Administrar lotes y caducidades','inventory'),('inventory.serials','Administrar números de serie','inventory'),('inventory.transfer','Transferir entre sucursales','inventory') ON DUPLICATE KEY UPDATE name=VALUES(name);
