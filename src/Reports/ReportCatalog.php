@@ -45,7 +45,8 @@ final class ReportCatalog{
   ['key'=>'purchases_tax','name'=>'Impuestos en compras','kind'=>'summary'],
   ['key'=>'purchases_products','name'=>'Productos adquiridos','kind'=>'summary'],
   ['key'=>'purchases_payments','name'=>'Pagos de compras','kind'=>'summary'],
-  ['key'=>'purchases_supplier_cost','name'=>'Comparativo de proveedores','kind'=>'summary']]],
+  ['key'=>'purchases_supplier_cost','name'=>'Comparativo de proveedores','kind'=>'summary'],
+  ['key'=>'suppliers_overview','name'=>'Panorama de proveedores','kind'=>'summary']]],
  ['key'=>'customers','name'=>'Clientes','reports'=>[
   ['key'=>'customers_overview','name'=>'Panorama de clientes','kind'=>'summary'],
   ['key'=>'customers_history','name'=>'Historial por cliente','kind'=>'detail'],
