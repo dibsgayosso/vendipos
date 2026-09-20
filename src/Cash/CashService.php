@@ -16,9 +16,8 @@ final class CashService {
   try{
    $q=$this->db->prepare("SELECT * FROM cash_sessions WHERE business_id=? AND branch_id=? AND user_id=? AND status='open' ORDER BY id DESC LIMIT 1 FOR UPDATE");
    $q->execute([$businessId,$branchId,$userId]);$s=$q->fetch();if(!$s)throw new RuntimeException('No hay caja abierta.');
-   $p=$this->db->prepare("SELECT COALESCE(SUM(p.amount),0) FROM payments p JOIN sales s ON s.id=p.sale_id WHERE s.business_id=? AND s.branch_id=? AND s.user_id=? AND s.completed_at>=? AND p.method='cash' AND s.status='completed'");
-   $p->execute([$businessId,$branchId,$userId,$s['opened_at']]);$cashSales=(float)$p->fetchColumn();
-   $expected=(float)$s['opening_amount']+$cashSales;$diff=$counted-$expected;
+   $m=$this->db->prepare("SELECT COALESCE(SUM(CASE WHEN type IN ('sale','deposit') THEN amount WHEN type IN ('refund','withdrawal') THEN -amount ELSE 0 END),0) FROM cash_movements WHERE cash_session_id=?");$m->execute([$s['id']]);$movementNet=(float)$m->fetchColumn();
+   $expected=(float)$s['opening_amount']+$movementNet;$diff=$counted-$expected;
    $u=$this->db->prepare("UPDATE cash_sessions SET closing_amount=?,expected_amount=?,difference_amount=?,status='closed',closed_at=NOW() WHERE id=?");
    $u->execute([$counted,$expected,$diff,$s['id']]);$this->db->commit();
    return ['session_id'=>(int)$s['id'],'expected'=>$expected,'counted'=>$counted,'difference'=>$diff];
