@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Inventory\KardexService;
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');
+try{$u=$_SESSION['user']??null;if(!$u)throw new RuntimeException('Sesión requerida');$db=Connection::make(['host'=>getenv('DB_HOST')?:'127.0.0.1','port'=>(int)(getenv('DB_PORT')?:3306),'database'=>getenv('DB_DATABASE')?:'vendi','username'=>getenv('DB_USERNAME')?:'root','password'=>getenv('DB_PASSWORD')?:'']);$s=new KardexService($db);$pid=(int)($_GET['product_id']??0);echo json_encode(['ok'=>true,'stock'=>$s->stock((int)$u['business_id'],$pid),'movements'=>$s->product((int)$u['business_id'],$pid,isset($_GET['branch_id'])?(int)$_GET['branch_id']:null)],JSON_UNESCAPED_UNICODE);}catch(Throwable $e){http_response_code(422);echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}
