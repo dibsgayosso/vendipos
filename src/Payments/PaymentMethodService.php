@@ -1,15 +1,6 @@
 <?php
-declare(strict_types=1);
-namespace Vendi\Payments;
-use PDO;use RuntimeException;
-final class PaymentMethodService{
- public function __construct(private PDO $db){}
- public function available(int $businessId,int $branchId):array{
-  $q=$this->db->prepare("SELECT pm.id,pm.code,pm.name,pm.type FROM payment_methods pm LEFT JOIN branch_payment_methods bpm ON bpm.payment_method_id=pm.id AND bpm.branch_id=? WHERE pm.business_id=? AND pm.active=1 AND COALESCE(bpm.enabled,1)=1 ORDER BY pm.sort_order,pm.name");
-  $q->execute([$branchId,$businessId]);return $q->fetchAll();
- }
- public function create(int $businessId,string $code,string $name,string $type):int{
-  if(!in_array($type,['cash','card','transfer','credit','other'],true))throw new RuntimeException('Tipo inválido.');
-  $q=$this->db->prepare("INSERT INTO payment_methods(business_id,code,name,type) VALUES(?,?,?,?)");$q->execute([$businessId,$code,$name,$type]);return (int)$this->db->lastInsertId();
- }
-}
+declare(strict_types=1);namespace Vendi\Payments;use PDO;use RuntimeException;
+final class PaymentMethodService{public function __construct(private PDO $db){}
+ public function available(int$b,int$branch):array{$q=$this->db->prepare("SELECT pm.id,pm.code,pm.name,pm.type,pm.affects_cash_drawer,pm.allows_change,pm.requires_reference,pm.quick_compatible,pm.is_quick_default FROM payment_methods pm LEFT JOIN branch_payment_methods bpm ON bpm.payment_method_id=pm.id AND bpm.branch_id=? WHERE pm.business_id=? AND pm.active=1 AND COALESCE(bpm.enabled,1)=1 ORDER BY pm.sort_order,pm.name");$q->execute([$branch,$b]);return$q->fetchAll();}
+ public function quickDefault(int$b,int$branch):?array{foreach($this->available($b,$branch) as$m)if((int)$m['quick_compatible']===1&&(int)$m['is_quick_default']===1)return$m;foreach($this->available($b,$branch) as$m)if((int)$m['quick_compatible']===1)return$m;return null;}
+ public function create(int$b,string$code,string$name,string$type):int{if(!in_array($type,['cash','card','transfer','credit','other'],true))throw new RuntimeException('Tipo inválido.');$q=$this->db->prepare("INSERT INTO payment_methods(business_id,code,name,type) VALUES(?,?,?,?)");$q->execute([$b,$code,$name,$type]);return(int)$this->db->lastInsertId();}}
