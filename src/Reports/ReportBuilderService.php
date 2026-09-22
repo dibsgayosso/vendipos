@@ -9,7 +9,7 @@ final class ReportBuilderService{
   'products'=>['name'=>'Productos vendidos','dimensions'=>['product'=>'Producto','category'=>'Categoría','employee'=>'Empleado'],'metrics'=>['qty'=>'Cantidad','sales'=>'Ventas','cost'=>'Costo','profit'=>'Utilidad']],
   'customers'=>['name'=>'Clientes','dimensions'=>['customer'=>'Cliente','employee'=>'Empleado'],'metrics'=>['tickets'=>'Tickets','sales'=>'Compras','average_ticket'=>'Ticket promedio']]
  ];}
- public function run(int$b,int$branch,string$f,string$t,string$dataset,array$dims,array$metrics,string$order='sales',string$direction='desc'):array{
+ public function run(int$b,int$branch,string$f,string$t,string$dataset,array$dims,array$metrics,string$order='sales',string$direction='desc',array$filters=[]):array{
   $defs=$this->definitions();if(!isset($defs[$dataset]))throw new RuntimeException('Origen de datos inválido.');$dims=array_values(array_intersect($dims,array_keys($defs[$dataset]['dimensions'])));$metrics=array_values(array_intersect($metrics,array_keys($defs[$dataset]['metrics'])));if(!$dims&&!$metrics)throw new RuntimeException('Selecciona al menos una columna.');
   $clock=new BranchClock($this->db);[$a]=$clock->utcRangeForLocalDate($b,$branch,$f);[, $z]=$clock->utcRangeForLocalDate($b,$branch,$t);
   $map=$dataset==='products'?[
@@ -23,6 +23,14 @@ final class ReportBuilderService{
   if($dataset==='products')$from="sale_items si JOIN sales s ON s.id=si.sale_id JOIN products p ON p.id=si.product_id LEFT JOIN product_categories pc ON pc.id=p.category_id JOIN users u ON u.id=s.user_id";
   elseif($dataset==='customers')$from="sales s LEFT JOIN customers c ON c.id=s.customer_id JOIN users u ON u.id=s.user_id";
   else $from="sales s JOIN users u ON u.id=s.user_id LEFT JOIN customers c ON c.id=s.customer_id LEFT JOIN payments pay ON pay.sale_id=s.id LEFT JOIN payment_methods pm ON pm.id=pay.payment_method_id";
-  $order=in_array($order,$cols,true)?$order:($metrics[0]??$dims[0]);$direction=strtolower($direction)==='asc'?'ASC':'DESC';$sql="SELECT ".implode(',',$select)." FROM ".$from." WHERE s.business_id=? AND s.branch_id=? AND s.status='completed' AND s.completed_at_utc>=? AND s.completed_at_utc<?".($group?" GROUP BY ".implode(',',$group):"")." ORDER BY ".$order." ".$direction." LIMIT 1000";$q=$this->db->prepare($sql);$q->execute([$b,$branch,$a,$z]);return['columns'=>$cols,'rows'=>$q->fetchAll()];
+  $where=["s.business_id=?","s.branch_id=?","s.status='completed'","s.completed_at_utc>=?","s.completed_at_utc<?"];$params=[$b,$branch,$a,$z];
+  $allowed=['employee_id'=>'s.user_id','customer_id'=>'s.customer_id'];
+  if($dataset==='products'){$allowed['product_id']='si.product_id';$allowed['category_id']='p.category_id';}
+  foreach($allowed as$k=>$field){if(isset($filters[$k])&&$filters[$k]!==''&&$filters[$k]!==null){$where[]=$field."=?";$params[]=(int)$filters[$k];}}
+  if($dataset==='sales'&&!empty($filters['payment_method'])){$where[]="COALESCE(pm.name,pay.method)=?";$params[]=(string)$filters['payment_method'];}
+  if(isset($filters['min_amount'])&&$filters['min_amount']!==''){$where[]="s.total>=?";$params[]=(float)$filters['min_amount'];}
+  if(isset($filters['max_amount'])&&$filters['max_amount']!==''){$where[]="s.total<=?";$params[]=(float)$filters['max_amount'];}
+  if(!empty($filters['search'])){$term='%'.trim((string)$filters['search']).'%';if($dataset==='products'){$where[]="(p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ?)";array_push($params,$term,$term,$term);}else{$where[]="(c.name LIKE ? OR c.phone LIKE ? OR c.email LIKE ?)";array_push($params,$term,$term,$term);}}
+  $order=in_array($order,$cols,true)?$order:($metrics[0]??$dims[0]);$direction=strtolower($direction)==='asc'?'ASC':'DESC';$sql="SELECT ".implode(',',$select)." FROM ".$from." WHERE ".implode(" AND ",$where).($group?" GROUP BY ".implode(',',$group):"")." ORDER BY ".$order." ".$direction." LIMIT 1000";$q=$this->db->prepare($sql);$q->execute($params);return['columns'=>$cols,'rows'=>$q->fetchAll(),'filters'=>$filters];
  }
 }
