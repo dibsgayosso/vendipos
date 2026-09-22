@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Http\ApiGuard;use Vendi\Customers\CustomerService;
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');
+try{$u=ApiGuard::session();$db=Connection::get();$b=(int)$u['business_id'];$id=(int)($_GET['id']??0);$s=new CustomerService($db);if($_SERVER['REQUEST_METHOD']==='GET'){echo json_encode(['ok'=>true,'customer'=>$s->detail($b,$id)],JSON_UNESCAPED_UNICODE);exit;}ApiGuard::csrf();$x=json_decode(file_get_contents('php://input'),true)?:[];$q=$db->prepare("UPDATE customers SET name=?,email=?,phone=?,price_level_id=?,credit_enabled=?,credit_limit=?,notes=? WHERE business_id=? AND id=?");$q->execute([trim((string)$x['name']),trim((string)($x['email']??''))?:null,trim((string)($x['phone']??''))?:null,!empty($x['price_level_id'])?(int)$x['price_level_id']:null,!empty($x['credit_enabled'])?1:0,max(0,(float)($x['credit_limit']??0)),trim((string)($x['notes']??''))?:null,$b,$id]);echo json_encode(['ok'=>true]);}catch(Throwable$e){http_response_code(400);echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}

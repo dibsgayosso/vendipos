@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Purchases\SupplierService;
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');
+try{$u=$_SESSION['user']??null;if(!$u)throw new RuntimeException('Sesión requerida');$db=Connection::make(['host'=>getenv('DB_HOST')?:'127.0.0.1','port'=>(int)(getenv('DB_PORT')?:3306),'database'=>getenv('DB_DATABASE')?:'vendi','username'=>getenv('DB_USERNAME')?:'root','password'=>getenv('DB_PASSWORD')?:'']);$svc=new SupplierService($db);if($_SERVER['REQUEST_METHOD']==='GET'){$r=$svc->search((int)$u['business_id'],(string)($_GET['q']??''));echo json_encode(['ok'=>true,'suppliers'=>$r],JSON_UNESCAPED_UNICODE);exit;}$d=json_decode(file_get_contents('php://input'),true,512,JSON_THROW_ON_ERROR);$id=$svc->create((int)$u['business_id'],$d);echo json_encode(['ok'=>true,'id'=>$id]);}catch(Throwable $e){http_response_code(422);echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}

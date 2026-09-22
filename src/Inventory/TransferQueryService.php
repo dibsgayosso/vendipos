@@ -1,0 +1,6 @@
+<?php
+declare(strict_types=1);namespace Vendi\Inventory;use PDO;
+final class TransferQueryService{public function __construct(private PDO $db){}
+ public function list(int$b,int$branch):array{$q=$this->db->prepare("SELECT t.*,fb.name from_branch,tb.name to_branch,u.name created_by_name FROM stock_transfers t JOIN branches fb ON fb.id=t.from_branch_id JOIN branches tb ON tb.id=t.to_branch_id LEFT JOIN users u ON u.id=t.created_by WHERE t.business_id=? AND (t.from_branch_id=? OR t.to_branch_id=?) ORDER BY t.id DESC LIMIT 100");$q->execute([$b,$branch,$branch]);return$q->fetchAll();}
+ public function detail(int$b,int$id):array{$q=$this->db->prepare("SELECT t.*,fb.name from_branch,tb.name to_branch FROM stock_transfers t JOIN branches fb ON fb.id=t.from_branch_id JOIN branches tb ON tb.id=t.to_branch_id WHERE t.business_id=? AND t.id=?");$q->execute([$b,$id]);$t=$q->fetch();if(!$t)return[];$i=$this->db->prepare("SELECT x.*,p.name product_name,p.sku,pv.name variant_name FROM stock_transfer_items x JOIN products p ON p.id=x.product_id LEFT JOIN product_variants pv ON pv.id=x.variant_id WHERE x.transfer_id=? ORDER BY x.id");$i->execute([$id]);$t['items']=$i->fetchAll();return$t;}
+}

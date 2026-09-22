@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Inventory\PresentationService;
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');
+try{$u=$_SESSION['user']??null;if(!$u)throw new RuntimeException('Sesión requerida');$productId=(int)($_GET['product_id']??0);$db=Connection::make(['host'=>getenv('DB_HOST')?:'127.0.0.1','port'=>(int)(getenv('DB_PORT')?:3306),'database'=>getenv('DB_DATABASE')?:'vendi','username'=>getenv('DB_USERNAME')?:'root','password'=>getenv('DB_PASSWORD')?:'']);echo json_encode(['ok'=>true,'presentations'=>(new PresentationService($db))->list((int)$u['business_id'],$productId)],JSON_UNESCAPED_UNICODE);}catch(Throwable $e){http_response_code(422);echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}

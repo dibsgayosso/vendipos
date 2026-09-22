@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1);require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');if(!isset($_SESSION['user'])){http_response_code(401);echo json_encode(['ok'=>false]);exit;}if(empty($_SESSION['csrf_token']))$_SESSION['csrf_token']=bin2hex(random_bytes(32));echo json_encode(['ok'=>true,'csrf_token'=>$_SESSION['csrf_token']]);

@@ -1,0 +1,4 @@
+CREATE TABLE cash_registers (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,business_id BIGINT UNSIGNED NOT NULL,branch_id BIGINT UNSIGNED NOT NULL,name VARCHAR(100) NOT NULL,active TINYINT(1) NOT NULL DEFAULT 1,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,KEY idx_register_branch(business_id,branch_id,active)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE cash_sessions ADD COLUMN cash_register_id BIGINT UNSIGNED NULL AFTER branch_id;
+INSERT INTO settings(business_id,branch_id,setting_key,setting_value) SELECT id,NULL,'receipt.footer','Gracias por su compra' FROM businesses ON DUPLICATE KEY UPDATE setting_value=setting_value;
+INSERT INTO settings(business_id,branch_id,setting_key,setting_value) SELECT id,NULL,'receipt.width_mm','80' FROM businesses ON DUPLICATE KEY UPDATE setting_value=setting_value;

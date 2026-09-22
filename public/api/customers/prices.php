@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Http\ApiGuard;use Vendi\Customers\CustomerService;
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');
+try{$u=ApiGuard::session();$db=Connection::get();$b=(int)$u['business_id'];$customer=(int)($_GET['customer_id']??0);$ids=array_values(array_filter(array_map('intval',explode(',',(string)($_GET['product_ids']??'')))));if(!$customer||!$ids){echo json_encode(['ok'=>true,'prices'=>[]]);exit;}$svc=new CustomerService($db);$marks=implode(',',array_fill(0,count($ids),'?'));$q=$db->prepare("SELECT id,price FROM products WHERE business_id=? AND id IN ($marks)");$q->execute(array_merge([$b],$ids));$out=[];foreach($q->fetchAll() as$p)$out[(int)$p['id']]=$svc->salePrice($b,$customer,(int)$p['id'],(float)$p['price']);echo json_encode(['ok'=>true,'prices'=>$out]);}catch(Throwable$e){http_response_code(400);echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);}

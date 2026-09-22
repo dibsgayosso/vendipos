@@ -1,0 +1,2 @@
+ALTER TABLE payment_methods ADD COLUMN affects_cash_drawer TINYINT(1) NOT NULL DEFAULT 0,ADD COLUMN allows_change TINYINT(1) NOT NULL DEFAULT 0,ADD COLUMN requires_reference TINYINT(1) NOT NULL DEFAULT 0,ADD COLUMN quick_compatible TINYINT(1) NOT NULL DEFAULT 0,ADD COLUMN is_quick_default TINYINT(1) NOT NULL DEFAULT 0;
+UPDATE payment_methods SET affects_cash_drawer=1,allows_change=1,quick_compatible=1 WHERE type='cash';

@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1);use Vendi\Database\Connection;use Vendi\Integrations\WhatsApp\WhatsAppService;require dirname(__DIR__,3).'/vendor/autoload.php';$s=new WhatsAppService(Connection::get());try{if($_SERVER['REQUEST_METHOD']==='GET'){header('Content-Type: text/plain');echo$s->verifyWebhook($_GET);exit;}$p=json_decode(file_get_contents('php://input'),true)?:[];$s->receive($p);http_response_code(200);echo'OK';}catch(Throwable$e){http_response_code(403);echo'Invalid';}

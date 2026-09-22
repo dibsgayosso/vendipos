@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Http\ApiGuard;use Vendi\Inventory\{PresentationService,LotService,SerialService,ReceivingService};
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');
+try{$u=ApiGuard::session();ApiGuard::csrf();$d=json_decode(file_get_contents('php://input'),true,512,JSON_THROW_ON_ERROR);$db=Connection::make(['host'=>getenv('DB_HOST')?:'127.0.0.1','port'=>(int)(getenv('DB_PORT')?:3306),'database'=>getenv('DB_DATABASE')?:'vendi','username'=>getenv('DB_USERNAME')?:'root','password'=>getenv('DB_PASSWORD')?:'']);ApiGuard::permission($db,$u,'inventory.receive');$svc=new ReceivingService($db,new PresentationService($db),new LotService($db),new SerialService($db),new \Vendi\Inventory\CostService($db));$r=$svc->receive((int)$u['business_id'],(int)$u['default_branch_id'],(int)$u['id'],$d['line']??[],isset($d['purchase_id'])?(int)$d['purchase_id']:null);echo json_encode(['ok'=>true,'received'=>$r],JSON_UNESCAPED_UNICODE);}catch(Throwable $e){http_response_code(422);echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}

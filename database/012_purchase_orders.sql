@@ -1,0 +1,13 @@
+CREATE TABLE purchase_orders (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,business_id BIGINT UNSIGNED NOT NULL,branch_id BIGINT UNSIGNED NOT NULL,supplier_id BIGINT UNSIGNED NOT NULL,user_id BIGINT UNSIGNED NOT NULL,folio VARCHAR(50) NOT NULL,status ENUM('draft','ordered','partial','received','cancelled') NOT NULL DEFAULT 'draft',ordered_at DATETIME NULL,expected_at DATE NULL,notes VARCHAR(500) NULL,subtotal DECIMAL(15,2) NOT NULL DEFAULT 0,tax DECIMAL(15,2) NOT NULL DEFAULT 0,total DECIMAL(15,2) NOT NULL DEFAULT 0,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_po_folio(business_id,folio),KEY idx_po_supplier(business_id,supplier_id,status,created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE purchase_order_items (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,purchase_order_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,presentation_id BIGINT UNSIGNED NOT NULL,description VARCHAR(255) NOT NULL,qty_ordered DECIMAL(18,6) NOT NULL,qty_received DECIMAL(18,6) NOT NULL DEFAULT 0,unit_cost DECIMAL(15,4) NOT NULL,tax_rate DECIMAL(7,4) NOT NULL DEFAULT 0,line_total DECIMAL(15,2) NOT NULL,KEY idx_po_items(purchase_order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE purchase_receipts (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,business_id BIGINT UNSIGNED NOT NULL,branch_id BIGINT UNSIGNED NOT NULL,purchase_order_id BIGINT UNSIGNED NOT NULL,supplier_id BIGINT UNSIGNED NOT NULL,user_id BIGINT UNSIGNED NOT NULL,supplier_document VARCHAR(100) NULL,notes VARCHAR(500) NULL,received_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,KEY idx_receipt_po(purchase_order_id,received_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE purchase_receipt_items (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,receipt_id BIGINT UNSIGNED NOT NULL,purchase_order_item_id BIGINT UNSIGNED NOT NULL,product_id BIGINT UNSIGNED NOT NULL,presentation_id BIGINT UNSIGNED NOT NULL,qty_received DECIMAL(18,6) NOT NULL,presentation_cost DECIMAL(15,4) NOT NULL,lot_number VARCHAR(100) NULL,expires_at DATE NULL,KEY idx_receipt_items(receipt_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT INTO permissions(code,name,module) VALUES ('purchases.view','Ver compras','purchases'),('purchases.create','Crear órdenes de compra','purchases'),('purchases.receive','Recibir órdenes de compra','purchases'),('purchases.cancel','Cancelar órdenes de compra','purchases') ON DUPLICATE KEY UPDATE name=VALUES(name);

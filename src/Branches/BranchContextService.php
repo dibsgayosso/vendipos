@@ -1,0 +1,7 @@
+<?php
+declare(strict_types=1);namespace Vendi\Branches;use PDO;use RuntimeException;
+final class BranchContextService{public function __construct(private PDO$db){}
+ public function available(array$u):array{if(in_array($u['role']??'',['owner','admin'],true)){$q=$this->db->prepare("SELECT id,name,code,timezone FROM branches WHERE business_id=? AND status='active' ORDER BY name");$q->execute([(int)$u['business_id']]);return$q->fetchAll();}$q=$this->db->prepare("SELECT b.id,b.name,b.code,b.timezone FROM user_branches ub JOIN branches b ON b.id=ub.branch_id WHERE ub.user_id=? AND b.business_id=? AND b.status='active' ORDER BY ub.is_default DESC,b.name");$q->execute([(int)$u['id'],(int)$u['business_id']]);return$q->fetchAll();}
+ public function select(array$u,int$branch):array{$available=$this->available($u);foreach($available as$b)if((int)$b['id']===$branch){$_SESSION['active_branch_id']=$branch;$_SESSION['user']['active_branch_id']=$branch;return$b;}throw new RuntimeException('Sucursal no autorizada o inactiva.');}
+ public function active(array$u):int{$id=(int)($_SESSION['active_branch_id']??$u['active_branch_id']??$u['default_branch_id']??0);foreach($this->available($u)as$b)if((int)$b['id']===$id)return$id;$a=$this->available($u);if(!$a)throw new RuntimeException('No tienes sucursales activas asignadas.');$id=(int)$a[0]['id'];$_SESSION['active_branch_id']=$id;return$id;}
+}

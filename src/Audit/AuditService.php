@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1);namespace Vendi\Audit;use PDO;use Vendi\Branches\BranchClock;
+final class AuditService{public function __construct(private PDO$db){}public function record(int$b,?int$branch,?int$user,string$type,?string$entityType=null,?int$entityId=null,?float$amount=null,array$detail=[]):void{$utc=$branch?(new BranchClock($this->db))->utcSql($b,$branch):gmdate('Y-m-d H:i:s');$q=$this->db->prepare("INSERT INTO audit_events(business_id,branch_id,user_id,event_type,entity_type,entity_id,amount,detail,created_at_utc) VALUES(?,?,?,?,?,?,?,?,?)");$q->execute([$b,$branch,$user,$type,$entityType,$entityId,$amount,$detail?json_encode($detail,JSON_UNESCAPED_UNICODE):null,$utc]);}}

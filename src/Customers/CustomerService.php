@@ -1,0 +1,10 @@
+<?php
+declare(strict_types=1);
+namespace Vendi\Customers;
+use PDO;use RuntimeException;
+final class CustomerService{
+ public function __construct(private PDO $db){}
+ public function detail(int$b,int$id):array{$q=$this->db->prepare("SELECT c.*,pl.name price_level_name,pl.calculation price_level_calculation,pl.discount_percent price_level_discount FROM customers c LEFT JOIN product_price_levels pl ON pl.id=c.price_level_id AND pl.business_id=c.business_id WHERE c.business_id=? AND c.id=?");$q->execute([$b,$id]);$c=$q->fetch();if(!$c)throw new RuntimeException('Cliente no encontrado.');return$c;}
+ public function salePrice(int$b,int$customerId,int$productId,float$retail):float{$q=$this->db->prepare("SELECT pl.calculation,COALESCE(v.discount_percent_override,pl.discount_percent) discount_percent,v.fixed_price FROM customers c JOIN product_price_levels pl ON pl.id=c.price_level_id AND pl.business_id=c.business_id LEFT JOIN product_price_level_values v ON v.price_level_id=pl.id AND v.product_id=? WHERE c.business_id=? AND c.id=? AND pl.active=1");$q->execute([$productId,$b,$customerId]);$r=$q->fetch();if(!$r)return$retail;if($r['calculation']==='fixed'&&$r['fixed_price']!==null)return(float)$r['fixed_price'];$pct=max(0,min(100,(float)($r['discount_percent']??0)));return round($retail*(1-$pct/100),4);}
+ public function assertCreditAvailable(int$b,int$customerId,float$additional):void{$q=$this->db->prepare("SELECT credit_enabled,credit_limit,credit_balance FROM customers WHERE business_id=? AND id=? FOR UPDATE");$q->execute([$b,$customerId]);$c=$q->fetch();if(!$c)throw new RuntimeException('Cliente no encontrado.');if(!(int)$c['credit_enabled'])throw new RuntimeException('El cliente no tiene crédito habilitado.');$available=(float)$c['credit_limit']-(float)$c['credit_balance'];if($additional>$available+0.0001)throw new RuntimeException('Límite de crédito excedido. Disponible: $'.number_format(max(0,$available),2));}
+}

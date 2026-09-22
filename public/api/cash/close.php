@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Branches\BranchContextService;use Vendi\Http\ApiGuard;use Vendi\Cash\CashService;
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json');
+try{$u=ApiGuard::session();ApiGuard::csrf();$d=json_decode(file_get_contents('php://input'),true)?:[];$db=Connection::make(['host'=>getenv('DB_HOST')?:'127.0.0.1','port'=>(int)(getenv('DB_PORT')?:3306),'database'=>getenv('DB_DATABASE')?:'vendi','username'=>getenv('DB_USERNAME')?:'root','password'=>getenv('DB_PASSWORD')?:'']);ApiGuard::permission($db,$u,'cash.close');$branch=(new BranchContextService($db))->active($u);ApiGuard::branch($db,$u,$branch);$r=(new CashService($db))->close((int)$u['business_id'],$branch,(int)$u['id'],(float)($d['counted_amount']??0));echo json_encode(['ok'=>true]+$r);}catch(Throwable $e){http_response_code(422);echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);}

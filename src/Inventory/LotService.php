@@ -1,0 +1,9 @@
+<?php
+declare(strict_types=1);
+namespace Vendi\Inventory;
+use PDO;use RuntimeException;
+final class LotService{
+ public function __construct(private PDO $db){}
+ public function receive(int $businessId,int $branchId,int $productId,string $lot,float $qtyBase,?string $expiresAt=null,?string $manufacturedAt=null,?float $cost=null):int{if($qtyBase<=0||trim($lot)==='')throw new RuntimeException('Lote y cantidad son obligatorios.');$q=$this->db->prepare("INSERT INTO inventory_lots(business_id,branch_id,product_id,lot_number,manufactured_at,expires_at,qty_base,cost_per_base) VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE qty_base=qty_base+VALUES(qty_base),expires_at=COALESCE(VALUES(expires_at),expires_at),cost_per_base=COALESCE(VALUES(cost_per_base),cost_per_base)");$q->execute([$businessId,$branchId,$productId,trim($lot),$manufacturedAt,$expiresAt,$qtyBase,$cost]);return(int)$this->db->lastInsertId();}
+ public function fefo(int $businessId,int $branchId,int $productId,float $needed):array{$q=$this->db->prepare("SELECT id,lot_number,expires_at,qty_base FROM inventory_lots WHERE business_id=? AND branch_id=? AND product_id=? AND qty_base>0 ORDER BY CASE WHEN expires_at IS NULL THEN 1 ELSE 0 END,expires_at,id FOR UPDATE");$q->execute([$businessId,$branchId,$productId]);$left=$needed;$out=[];foreach($q->fetchAll() as $r){if($left<=0)break;$take=min($left,(float)$r['qty_base']);$out[]=['lot_id'=>(int)$r['id'],'lot_number'=>$r['lot_number'],'expires_at'=>$r['expires_at'],'qty_base'=>$take];$left-=$take;}if($left>0)throw new RuntimeException('Existencia insuficiente por lote.');return $out;}
+}
