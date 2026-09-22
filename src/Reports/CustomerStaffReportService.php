@@ -1,0 +1,12 @@
+<?php
+declare(strict_types=1);
+namespace Vendi\Reports;
+use PDO;use Vendi\Branches\BranchClock;
+final class CustomerStaffReportService{
+ public function __construct(private PDO $db){}
+ private function range(int$b,int$branch,string$f,string$t):array{$c=new BranchClock($this->db);[$a]=$c->utcRangeForLocalDate($b,$branch,$f);[, $z]=$c->utcRangeForLocalDate($b,$branch,$t);return[$a,$z];}
+ public function customers(int$b,int$branch,string$f,string$t):array{[$a,$z]=$this->range($b,$branch,$f,$t);$q=$this->db->prepare("SELECT c.id,c.name,c.phone,c.email,COALESCE(pl.name,'Público') price_level,COUNT(s.id) tickets,COALESCE(SUM(s.total),0) purchases,COALESCE(AVG(s.total),0) average_ticket,MAX(s.completed_at_utc) last_purchase,c.credit_limit,c.credit_balance FROM customers c LEFT JOIN product_price_levels pl ON pl.id=c.price_level_id LEFT JOIN sales s ON s.customer_id=c.id AND s.branch_id=? AND s.status='completed' AND s.completed_at_utc>=? AND s.completed_at_utc<? WHERE c.business_id=? GROUP BY c.id ORDER BY purchases DESC");$q->execute([$branch,$a,$z,$b]);return$q->fetchAll();}
+ public function newCustomers(int$b,string$f,string$t):array{$q=$this->db->prepare("SELECT DATE(created_at) date,COUNT(*) customers FROM customers WHERE business_id=? AND DATE(created_at)>=? AND DATE(created_at)<=? GROUP BY DATE(created_at) ORDER BY date");$q->execute([$b,$f,$t]);return$q->fetchAll();}
+ public function history(int$b,int$branch,string$f,string$t):array{[$a,$z]=$this->range($b,$branch,$f,$t);$q=$this->db->prepare("SELECT c.name customer,s.id sale_id,s.completed_at_utc,s.total,u.name employee FROM sales s JOIN customers c ON c.id=s.customer_id JOIN users u ON u.id=s.user_id WHERE s.business_id=? AND s.branch_id=? AND s.status='completed' AND s.completed_at_utc>=? AND s.completed_at_utc<? ORDER BY s.completed_at_utc DESC LIMIT 500");$q->execute([$b,$branch,$a,$z]);return$q->fetchAll();}
+ public function activity(int$b,int$branch,string$f,string$t):array{[$a,$z]=$this->range($b,$branch,$f,$t);$q=$this->db->prepare("SELECT u.name employee,s.id sale_id,s.completed_at_utc,s.total,s.discount,(s.total-s.cost_total) profit,COALESCE(c.name,'Público general') customer FROM sales s JOIN users u ON u.id=s.user_id LEFT JOIN customers c ON c.id=s.customer_id WHERE s.business_id=? AND s.branch_id=? AND s.status='completed' AND s.completed_at_utc>=? AND s.completed_at_utc<? ORDER BY s.completed_at_utc DESC LIMIT 500");$q->execute([$b,$branch,$a,$z]);return$q->fetchAll();}
+}
