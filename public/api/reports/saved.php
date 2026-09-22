@@ -2,7 +2,7 @@
 declare(strict_types=1);
 use Vendi\Database\Connection;use Vendi\Http\ApiGuard;
 require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');
-try{$u=ApiGuard::session();ApiGuard::permission('reports.saved');$db=Connection::get();$b=(int)$u['business_id'];$uid=(int)$u['id'];
+try{$u=ApiGuard::session();ApiGuard::permission($db,$u,'reports.saved');$db=Connection::get();$b=(int)$u['business_id'];$uid=(int)$u['id'];
 if($_SERVER['REQUEST_METHOD']==='GET'){$q=$db->prepare("SELECT id,name,report_key,filters_json,is_shared,created_at,updated_at FROM saved_reports WHERE business_id=? AND (user_id=? OR is_shared=1) ORDER BY updated_at DESC");$q->execute([$b,$uid]);echo json_encode(['ok'=>true,'data'=>$q->fetchAll()],JSON_UNESCAPED_UNICODE);exit;}
 ApiGuard::csrf();$x=json_decode(file_get_contents('php://input'),true)?:[];$action=(string)($x['action']??'save');
 if($action==='delete'){$q=$db->prepare("DELETE FROM saved_reports WHERE id=? AND business_id=? AND user_id=?");$q->execute([(int)$x['id'],$b,$uid]);echo json_encode(['ok'=>true]);exit;}
