@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+use Vendi\Database\Connection;use Vendi\Http\ApiGuard;use Vendi\Branches\BranchContextService;use Vendi\Reports\ReportBuilderService;
+require dirname(__DIR__,3).'/vendor/autoload.php';session_start();header('Content-Type: application/json; charset=utf-8');
+try{$u=ApiGuard::session();ApiGuard::permission('reports.view');$db=Connection::get();$b=(int)$u['business_id'];$branch=(int)(new BranchContextService($db))->activeBranchId($u);ApiGuard::branch($branch);$r=new ReportBuilderService($db);if($_SERVER['REQUEST_METHOD']==='GET'){echo json_encode(['ok'=>true,'definitions'=>$r->definitions()],JSON_UNESCAPED_UNICODE);exit;}ApiGuard::csrf();$x=json_decode(file_get_contents('php://input'),true)?:[];$data=$r->run($b,$branch,(string)($x['from']??date('Y-m-01')),(string)($x['to']??date('Y-m-d')),(string)($x['dataset']??'sales'),(array)($x['dimensions']??[]),(array)($x['metrics']??[]),(string)($x['order']??'sales'),(string)($x['direction']??'desc'));echo json_encode(['ok'=>true,'data'=>$data],JSON_UNESCAPED_UNICODE);}catch(Throwable$e){http_response_code(400);echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);}
