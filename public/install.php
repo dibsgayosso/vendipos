@@ -1,0 +1,18 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__).'/src/autoload.php';
+use Vendi\Database\Connection;
+session_start();$messages=[];$ok=false;$locked=is_file(dirname(__DIR__).'/storage/installed.lock');
+if($_SERVER['REQUEST_METHOD']==='POST'&&!$locked){try{
+ $db=Connection::get();$messages[]='Conexión MySQL correcta.';
+ $db->exec("CREATE TABLE IF NOT EXISTS vendi_migrations(filename VARCHAR(190) PRIMARY KEY,applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+ if(!$db->query("SHOW TABLES LIKE 'businesses'")->fetchColumn()){$db->exec((string)file_get_contents(dirname(__DIR__).'/database/schema.sql'));$messages[]='Esquema base creado.';}
+ $done=$db->query("SELECT filename FROM vendi_migrations")->fetchAll(PDO::FETCH_COLUMN);$files=glob(dirname(__DIR__).'/database/[0-9][0-9][0-9]_*.sql')?:[];sort($files,SORT_NATURAL);
+ foreach($files as$f){$n=basename($f);if(in_array($n,$done,true))continue;$db->exec((string)file_get_contents($f));$q=$db->prepare("INSERT INTO vendi_migrations(filename) VALUES(?)");$q->execute([$n]);$messages[]="Aplicada $n";}
+ if(!$db->query("SELECT id FROM businesses LIMIT 1")->fetchColumn()){
+  $email=mb_strtolower(trim((string)($_POST['email']??'')));$password=(string)($_POST['password']??'');$name=trim((string)($_POST['name']??'Propietario'));if(!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($password)<10)throw new RuntimeException('Correo válido y contraseña de mínimo 10 caracteres.');
+  $db->beginTransaction();$db->exec("INSERT INTO businesses(name,status) VALUES('Vendi POS','active')");$b=(int)$db->lastInsertId();$q=$db->prepare("INSERT INTO branches(business_id,code,name,status,is_billable_addon,addon_status,activated_at) VALUES(?,'MATRIZ','Matriz','active',0,'included',NOW())");$q->execute([$b]);$br=(int)$db->lastInsertId();$q=$db->prepare("INSERT INTO users(business_id,default_branch_id,name,email,password_hash,role,status) VALUES(?,?,?,?,?,'owner','active')");$q->execute([$b,$br,$name,$email,password_hash($password,PASSWORD_DEFAULT)]);$db->commit();$messages[]='Propietario y sucursal creados.';
+ }
+ file_put_contents(dirname(__DIR__).'/storage/installed.lock',date(DATE_ATOM));$ok=true;
+}catch(Throwable$e){if(isset($db)&&$db->inTransaction())$db->rollBack();$messages[]='ERROR: '.$e->getMessage();}}
+?><!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Instalar Vendi POS</title><style>body{font-family:system-ui;background:#f4f7fb;display:grid;place-items:center;min-height:100vh}.box{background:white;width:min(650px,90vw);padding:30px;border-radius:18px;box-shadow:0 12px 40px #0001}input,button{box-sizing:border-box;width:100%;padding:12px;margin:6px 0}button{background:#111827;color:#fff;border:0;border-radius:8px}.msg{padding:8px;background:#eef2ff;margin:5px 0;border-radius:7px}</style></head><body><div class="box"><h1>Vendi POS</h1><h2>Instalación</h2><?php foreach($messages as$m):?><div class="msg"><?=htmlspecialchars($m)?></div><?php endforeach;?><?php if($locked||$ok):?><p><b>Instalación completada.</b></p><p><a href="login.php">Ir a iniciar sesión</a></p><?php else:?><p>El instalador usará las credenciales guardadas en <code>.env</code>.</p><form method="post"><input name="name" required placeholder="Nombre del propietario"><input name="email" type="email" required placeholder="Correo de acceso"><input name="password" type="password" minlength="10" required placeholder="Contraseña (mínimo 10 caracteres)"><button>Instalar Vendi POS</button></form><?php endif;?></div></body></html>
