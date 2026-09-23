@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require dirname(__DIR__).'/vendor/autoload.php';
+require dirname(__DIR__).'/src/autoload.php';
 session_start();if(!isset($_SESSION['user'])){header('Location: login.php');exit;}
 ?><!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vendi POS</title><link rel="stylesheet" href="assets/app.css"></head><body>
 <aside><div class="brand">Vendi<span>POS</span></div><nav><a class="active">Venta</a><a>Inventario</a><a>Productos</a><a>Clientes</a><a>Compras</a><a>Proveedores</a><a>Caja</a><a>Reportes</a><a href="invoices.php">Facturación</a><a href="branches.php">Sucursales</a><a>Periféricos</a><a href="settings.php">Configuración</a></nav></aside>
