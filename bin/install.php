@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require __DIR__.'/../vendor/autoload.php';
+require __DIR__.'/../src/autoload.php';
 use Vendi\Database\Connection;
 if(PHP_SAPI!=='cli'){http_response_code(403);exit("Ejecuta este instalador por CLI.\n");}
 try{$db=Connection::get();echo "Conexión a MySQL: OK\n";}catch(Throwable $e){fwrite(STDERR,"No se pudo conectar a MySQL: ".$e->getMessage()."\n");exit(1);}
