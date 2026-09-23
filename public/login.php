@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require dirname(__DIR__).'/vendor/autoload.php';
+require dirname(__DIR__).'/src/autoload.php';
 use Vendi\Database\Connection;use Vendi\Auth\AuthService;
 session_start();$error='';
 if(isset($_SESSION['user'])){header('Location: index.php');exit;}
